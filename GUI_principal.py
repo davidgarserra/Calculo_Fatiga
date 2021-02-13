@@ -32,6 +32,7 @@ class programa(tk.Tk):
         self.units = ["","","","m","MPa m^0.5","MPa","m","MPa m^0.5","MPa","MPa","MPa","","","MPa"]
         self.dict_prop = {}
         self.mat_values ={}
+        self.material =""
 
         self.dict_units = dict(zip(self.props,self.units))
 
@@ -43,6 +44,7 @@ class programa(tk.Tk):
         self.da =0.0
         self.ini_file =""
         self.df =pd.DataFrame()
+        self.df_materiales =pd.DataFrame()
         
         
         
@@ -113,17 +115,25 @@ class programa(tk.Tk):
         
         #Botones de las propiedades
         self.boton_borrar = ttk.Button(props_lf,width = 20,text="Borrar todo",command = self.borrar_campos)
-        self.boton_borrar.grid(column = 0,row =len(self.props),padx =2, pady =5,sticky= tk.W)
+        self.boton_borrar.grid(column = 0,row =len(self.props),padx =5, pady =5,sticky= tk.W)
         self.boton_guardar= ttk.Button(props_lf,text="Confirmar",width=20,command = lambda: self.guardar_campos(None))
-        self.boton_guardar.grid(column = 1,row =len(self.props),padx =2, pady =5,sticky= tk.W)
+        self.boton_guardar.grid(column = 1,row =len(self.props),padx =5, pady =5,sticky= tk.W)
         self.tabs["Material"].bind("<Return>",self.guardar_campos)
 
+        #Guardar y borrar material 
+        self.btn_guardar_material = ttk.Button(props_lf,width =20, text = "Guardar Material", command = self.guardar_material)
+        self.btn_borrar_material = ttk.Button(props_lf,width =20, text = "Borrar Material",command = self.borrar_material)
+        self.btn_guardar_material.grid(column =1, row = len(self.props)+1, padx = 5, pady =5,sticky= tk.W)
+        self.btn_borrar_material.grid(column =0, row = len(self.props)+1, padx = 5, pady =5,sticky= tk.W)
+       
         #combobox
-        self.comb_val = ["Aluminio"]
-        self.combo = ttk.Combobox(props_lf,width = 30,value =self.comb_val,font =("Arial",12,"bold"),foreground="green",background="black")
-        self.combo.bind("<<ComboboxSelected>>",self.combosel) 
-        self.combo.grid(column = 0, row = len(self.props)+1,columnspan=2,padx = 5, pady = 8)
+        self.comb_val = []
+        self.cargar_materiales()
+        self.combo_mat = ttk.Combobox(props_lf,width = 30,value =self.comb_val,font =("Arial",12,"bold"))
+        self.combo_mat.bind("<<ComboboxSelected>>",self.combosel) 
+        self.combo_mat.grid(column = 0, row = len(self.props)+2,columnspan=2,padx = 5, pady = 8)
         
+       
        
         ### Label Frame del resumen 
         self.resum_lf =ttk.Labelframe(self.tabs["Material"],text = "Resumen")
@@ -338,10 +348,15 @@ class programa(tk.Tk):
     def combosel(self,event):
         """Selecciona un valor de la lista y completa los campos con los valores asignados.
         """
-        for prop in self.props:
-            if prop != "G" or prop !="a_0":
+        self.material = self.combo_mat.get() 
+        cols = self.df_materiales.columns.values.tolist()[1:]
+        self.props_entries["a_0"].delete(0,tk.END)
+        self.props_entries["G"].delete(0,tk.END)
+        self.props_entries["a_0"].config(state=tk.DISABLED)
+        self.props_entries["G"].config(state=tk.DISABLED)
+        for prop in cols:
                 self.props_entries[prop].delete(0,tk.END)
-                self.props_entries[prop].insert(0,MAT[prop])   
+                self.props_entries[prop].insert(0,self.df_materiales[self.df_materiales["Material"]==self.material][prop].values[0])   
     
     def borrar_campos(self):
         """Elimina los valores de los campos.
@@ -382,7 +397,52 @@ class programa(tk.Tk):
                 # self.props_entries[prop].config(fg= "green")
                 self.resum_label[prop].config(text = "{}:\t{:.3e}\t{}".format(prop,self.dict_prop[prop],self.dict_units[prop]))
         
+    def cargar_materiales(self):
+        self.df_materiales = pd.read_excel("materiales.xlsx",index_col=0)
+        self.comb_val = list(self.df_materiales["Material"])
+
+    
+    def guardar_material(self):
+        self.material =self.combo_mat.get()
+
+        self.comb_val.append(self.material)
+        self.combo_mat.config(values=self.comb_val)
+
+        self.df_mat_cols = self.df_materiales.columns.values[1:]
         
+        self.datos_materiales ={"Material":self.material}
+
+        try:
+            for prop in self.df_mat_cols: 
+                self.datos_materiales[prop] = float(self.props_entries[prop].get())
+
+            self.df_materiales= self.df_materiales.append(self.datos_materiales,ignore_index =True)
+            self.df_materiales.to_excel("materiales.xlsx")
+        except ValueError:
+            tk.messagebox.showerror("ERROR","Algún valor no es válido")
+            self.comb_val.pop()
+            self.combo_mat.config(values=self.comb_val)
+
+
+    def borrar_material(self):
+        self.material =self.combo_mat.get()
+
+        self.df_materiales = self.df_materiales.drop(self.df_materiales[self.df_materiales["Material"]==self.material].index)
+        self.df_materiales.to_excel("materiales.xlsx")
+
+        self.comb_val.remove(self.material)
+        self.combo_mat.config(values=self.comb_val)
+
+        self.borrar_campos()
+
+
+
+
+
+       
+
+
+
     def mostrar_info(self):
         """Muestra la información del programa en una alerta.
         """
