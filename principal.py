@@ -186,7 +186,7 @@ def parametro(par, MAT, x, s_max, e_max, e_min):
 ###############################################################################
 ###############################################################################
 
-def principal(par, W, MAT,ac,exp_max, exp_min,ruta_curvas=None):
+def principal(par, W, MAT,ac,exp_max, exp_min,ruta_exp,ruta_curvas=None,main_path=""):
     """Estima la vida a fatiga.
     
     INPUTS:  par     = parametro para el modelo de iniciacion
@@ -219,11 +219,11 @@ def principal(par, W, MAT,ac,exp_max, exp_min,ruta_curvas=None):
     exp_id      = re.search(pattern,exp_max).group()
 
     #Obtenemos las rutas a las carpetas necesarias para los calculos 
-    cwd         = os.getcwd()
-    ruta_exp    = cwd + '/datos_experimentales'
-    ruta_datos  = cwd + '/resultados/datos/{}'.format(par)
+    # cwd         = os.getcwd()
+    # ruta_exp    = cwd + '/datos_experimentales'
+    ruta_datos  = main_path+ '/resultados/datos/{}'.format(par)
     if ruta_curvas is None:
-        ruta_curvas = cwd + '/curvas_inic/{}'.format(ac)
+        ruta_curvas = main_path + '/curvas_inic/{}'.format(ac)
         data_interp = np.loadtxt("{}/MAT_{}.dat".format(ruta_curvas, par)) 
     else: 
         data_interp = np.loadtxt(ruta_curvas)
@@ -318,16 +318,17 @@ def principal(par, W, MAT,ac,exp_max, exp_min,ruta_curvas=None):
         ciclos.write('\n{:.3f}\t{:.6e}\t{:.6e}\t{:.6e}\t{:.6e}'.format(ai*1e3,
                      n_i+n_p, n_i, n_p, n_a))            
     ciclos.close()
-            
-   
-    lines = np.loadtxt('resultados_generales/resultados.dat', dtype = str, skiprows = 1).tolist()
+
+    if os.path.isfile(main_path+'/resultados_generales/resultados.dat'):
+        lines = np.loadtxt(main_path+'/resultados_generales/resultados.dat', dtype = str, skiprows = 1).tolist()
     # Se reescriben las lineas que ya estaban en el archivo. EL if else es debido
     # a que el formato de lines varía según haya una línea de resultados escrita 
     # o mas de una.
+    else:
     
-    results = open('resultados_generales/resultados.dat', 'w')
-    results.write('{:<13}\t{:<}\t{:<12}\t{:<12}\t{:<12}\t{:<5}\t{:<5}\t{:<}'.format('exp_id', 
-                  'param', 'N_t_min', 'N_i_min', 'N_p_min', '% N_i', '% N_p', 'a_inic (mm)'))
+        results = open(main_path+'/resultados_generales/resultados.dat', 'w')
+        results.write('{:<13}\t{:<}\t{:<12}\t{:<12}\t{:<12}\t{:<5}\t{:<5}\t{:<}'.format('exp_id', 
+                    'param', 'N_t_min', 'N_i_min', 'N_p_min', '% N_i', '% N_p', 'a_inic (mm)'))
     
 
     
@@ -377,7 +378,7 @@ def pintar_grafica_a_N_todas(N_a, v_ai_mm):
     
     
     
-def pintar_grafica_iniciacion(a_inic,v_ai_mm, N_t_min,N_t,N_p, N_i,par, exp_id ):
+def pintar_grafica_iniciacion(a_inic,v_ai_mm, N_t_min,N_t,N_p, N_i,par, exp_id,main_path="" ):
     
     fig = plt.figure(f"{exp_id}_{par}")
     plt.title("Punto de Iniciación")
@@ -395,7 +396,7 @@ def pintar_grafica_iniciacion(a_inic,v_ai_mm, N_t_min,N_t,N_p, N_i,par, exp_id )
                 xy =(a_inic,N_t_min),
                 xytext =(1,1e7), 
                 arrowprops=dict(facecolor ="blue",width=0.1,headwidth =0.2))
-    plt.savefig("resultados/grafs/{}/{}.png".format(par,exp_id))
+    plt.savefig(main_path+"/resultados/grafs/{}/{}.png".format(par,exp_id))
     return fig
     
 

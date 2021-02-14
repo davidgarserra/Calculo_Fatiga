@@ -99,7 +99,7 @@ def fase_iniciacion(param, sigma, crit, a_i,ac, da, W, MAT):
 ###############################################################################
 ############################################################################### 
     
-def curvas_iniciacion(par, da,ac, W, MAT):
+def curvas_iniciacion(par, da,ac, W, MAT,main_path=""):
     """Escribe un archivo de texto con las curvas de
     iniciación para distintas longitudes de grieta para un material.
     
@@ -118,13 +118,13 @@ def curvas_iniciacion(par, da,ac, W, MAT):
     #Abrimos el archivo donde se van a escribir los datos,
     #escribimos la cabecera del mismo y creamos los vectores con las tensiones
     #y los tamaños de grieta para crear las curvas de iniciación
-    cwd      = os.getcwd()
-    ruta     = cwd + '/curvas_inic/{}/'.format(ac)
-    ruta_fig = cwd + '/grafs/{}/'.format(ac)
-    if(os.path.isdir(ruta_fig)):
-        pass
-    else:
-        os.mkdir(ruta_fig)
+    # cwd      = os.getcwd()
+    ruta     = main_path + '/curvas_inic/{}/'.format(ac)
+    ruta_fig = main_path + '/grafs/{}/'.format(ac)
+    # if(os.path.isdir(ruta_fig)):
+    #     pass
+    # else:
+    #     os.mkdir(ruta_fig)
 
     archivo  = open('{}/MAT_{}.dat'.format(ruta, par), 'w')
         

@@ -53,17 +53,15 @@ class programa(tk.Tk):
         self.subdir_exp =""
         self.exp_files_path =""
         self.file_path =""
-        # self.acabados =["Sin Acabado","Electroerosion","Shotpeeling"]
-        # self.dict_acabados={self.acabados[0]:"sin_tratamiento",
-        #                     self.acabados[2]:"shot_peening",
-        #                     self.acabados[1]:"electroerosion"}
-        # self.trat = ""
-        # self.acabado_var = tk.StringVar()
+      
         self.lista_exp =[]  #Lista de experimentos sin especificar traccion o compresion
         self.df_datos =pd.DataFrame()
 
         self.ubi_dat_exp ="" #ubicacion de los datos experimentales para pestaña gráficas
         self.ubi_dat_est ="" #ubicacion de los datos estimados para pestaña gráficas
+
+        self.ruta_principal = ""
+
 
         for prop in self.props:
             self.mat_values[prop] = tk.StringVar()
@@ -74,6 +72,9 @@ class programa(tk.Tk):
         self.menu = tk.Menu(self)
         self.file_menu = tk.Menu(self.menu, tearoff=0)
         self.file_menu.add_command(label="Nuevo",command= self.abrir_nuevo)
+        self.file_menu.add_command(label="Seleccionar nueva carpeta",command= self.seleccionar__nueva_carpeta)
+        self.file_menu.add_command(label="Seleccionar carpeta existente",command= self.seleccionar_carpeta)
+        self.file_menu.add_separator()
         self.file_menu.add_command(label="Abrir datos experimentales",command=self.carga_datos)
         self.file_menu.add_command(label="Abrir resultados de iniciación",command=self.abrir_resultados_iniciacion)
         self.file_menu.add_separator()
@@ -435,14 +436,41 @@ class programa(tk.Tk):
 
         self.borrar_campos()
 
+    def seleccionar__nueva_carpeta(self):
 
+        self.ruta_principal = tk.filedialog.askdirectory(title = "Abrir carpeta")
+        os.chdir(self.ruta_principal)
+
+        acs_list = ["eliptica","plana"]
+
+        par_list =["SWT","FS"]
+        opt_list = ["datos","grafs"]
+        
+        ruta_curva_inic = os.path.join(self.ruta_principal,"curvas_inic")
+        
+        lista_path =[]
+
+        lista_path.append("resultados_generales")
+
+        for ac in acs_list: 
+            lista_path.append("curvas_inic/{}".format(ac))
+            lista_path.append("grafs/{}".format(ac))
+        
+        for opt in opt_list:
+            for par in par_list: 
+                lista_path.append("resultados/{}/{}".format(opt,par))
+                                            
+        for path in lista_path: 
+            if not os.path.exists(path):
+                os.makedirs(path)   
+
+    def seleccionar_carpeta(self):
+        self.ruta_principal = tk.filedialog.askdirectory(title = "Abrir carpeta")
+        os.chdir(self.ruta_principal)
 
 
 
        
-
-
-
     def mostrar_info(self):
         """Muestra la información del programa en una alerta.
         """
@@ -478,10 +506,10 @@ class programa(tk.Tk):
         self.par =self.var_param.get()
         self.da =float(self.da_entry.get())
         self.W= float(self.W_entry.get())
-        self.ini_file ="curvas_inic/{}/MAT_{}.dat".format(self.ac_param.get(),self.par)
+        self.ini_file =self.ruta_principal+"/curvas_inic/{}/MAT_{}.dat".format(self.ac_param.get(),self.par)
         if not os.path.isfile(self.ini_file):
         
-            self.N_i,self.n_a,self.v_sigma =curvas_iniciacion(par = self.par, da=self.da,ac=self.ac_param.get(), W = self.W, MAT=self.dict_prop)
+            self.N_i,self.n_a,self.v_sigma =curvas_iniciacion(par = self.par, da=self.da,ac=self.ac_param.get(), W = self.W, MAT=self.dict_prop,main_path=self.ruta_principal)
             self.plot_iniciacion()
         else: 
             tk.messagebox.showwarning("Atención","Ya se ha realizado la ejecución de las curvas de iniciación con estos parámetros, No es necesario ejecutar la iniciación")
@@ -526,8 +554,9 @@ class programa(tk.Tk):
             self.combo_exp.set(self.files_exp[0])
             
         except FileNotFoundError:
-             tk.messagebox.showerror("ERROR","En esta ruta no se encuentran las carpetas con los experimentos. Selecciona otra carpeta")
-        
+            tk.messagebox.showerror("ERROR","En esta ruta no se encuentran experimentos. Selecciona otra carpeta")
+        except IndexError: 
+            tk.tk.messagebox.showerror("ERROR","En esta ruta no se encuentran experimentos. Selecciona otra carpeta")
         self.nombre_experimentos()
      
     def sel_exp(self,event):
@@ -652,7 +681,7 @@ class programa(tk.Tk):
         exp_min  = list(filter(lambda i: re.match(pat_min,i),self.files_exp))[0][:-4]
         
         try:
-            a_inic,v_ai_mm, N_t_min,N_t,N_p, N_i, N_a = principal(self.par,self.W,self.dict_prop,self.ac_param.get(),exp_max,exp_min,ruta_curvas=self.ini_file)
+            a_inic,v_ai_mm, N_t_min,N_t,N_p, N_i, N_a = principal(self.par,self.W,self.dict_prop,self.ac_param.get(),exp_max,exp_min,self.dir_exp,ruta_curvas=self.ini_file,main_path= self.ruta_principal)
             
             self.a_N_fig = pintar_grafica_a_N(N_a,v_ai_mm,self.par,self.combo_ejec.get())
             self.a_N_chart= FigureCanvasTkAgg(self.a_N_fig,self.graf_ini_lf)
@@ -661,7 +690,7 @@ class programa(tk.Tk):
             self.a_N_TB.update()
             self.a_N_chart.get_tk_widget().pack(fill = tk.BOTH,expand=1,padx =5, pady = 5)
 
-            self.cicl_fig = pintar_grafica_iniciacion(a_inic,v_ai_mm, N_t_min,N_t,N_p, N_i,self.par, self.combo_ejec.get())
+            self.cicl_fig = pintar_grafica_iniciacion(a_inic,v_ai_mm, N_t_min,N_t,N_p, N_i,self.par, self.combo_ejec.get(),main_path=self.ruta_principal)
             self.cicl_chart= FigureCanvasTkAgg(self.cicl_fig,self.graf_cicl_lf)
             self.cicl_chart.draw()
             self.cicl_TB  = NavigationToolbar2Tk(self.cicl_chart,self.graf_cicl_lf)
@@ -692,6 +721,7 @@ class programa(tk.Tk):
 
 
         self.a_N_fig =plt.figure()
+
         for exp in self.lista_exp:
             
             pat_max =r'TENSOR_TRAC\S+_{}'.format(exp)
@@ -700,7 +730,7 @@ class programa(tk.Tk):
             exp_max=    list(filter(lambda i: re.match(pat_max,i),self.files_exp))[0][:-4]
             exp_min  = list(filter(lambda i: re.match(pat_min,i),self.files_exp))[0][:-4]
 
-            a_inic,v_ai_mm, N_t_min,N_t,N_p, N_i, N_a = principal(self.par,self.W,self.dict_prop,self.ac_param.get(),exp_max,exp_min,ruta_curvas = self.ini_file)
+            a_inic,v_ai_mm, N_t_min,N_t,N_p, N_i, N_a = principal(self.par,self.W,self.dict_prop,self.ac_param.get(),exp_max,exp_min,self.dir_exp,ruta_curvas = self.ini_file,main_path=self.ruta_principal)
 
             pintar_grafica_a_N_todas(N_a,v_ai_mm)
             self.a_N_chart= FigureCanvasTkAgg(self.a_N_fig,self.graf_ini_lf)
