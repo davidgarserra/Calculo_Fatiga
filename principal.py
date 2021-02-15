@@ -319,38 +319,23 @@ def principal(par, W, MAT,ac,exp_max, exp_min,ruta_exp,ruta_curvas=None,main_pat
                      n_i+n_p, n_i, n_p, n_a))            
     ciclos.close()
 
-    if os.path.isfile(main_path+'/resultados_generales/resultados.dat'):
-        lines = np.loadtxt(main_path+'/resultados_generales/resultados.dat', dtype = str, skiprows = 1).tolist()
-    # Se reescriben las lineas que ya estaban en el archivo. EL if else es debido
-    # a que el formato de lines varía según haya una línea de resultados escrita 
-    # o mas de una.
-    else:
-    
-        results = open(main_path+'/resultados_generales/resultados.dat', 'w')
-        results.write('{:<13}\t{:<}\t{:<12}\t{:<12}\t{:<12}\t{:<5}\t{:<5}\t{:<}'.format('exp_id', 
-                    'param', 'N_t_min', 'N_i_min', 'N_p_min', '% N_i', '% N_p', 'a_inic (mm)'))
-    
+    cols = ['exp_id','param', 'N_t_min', 'N_i_min', 'N_p_min', 'N_i_perc', 'N_p_perc', 'a_inic(mm)']
+    values =[exp_id, par, N_t_min, N_i_min, N_p_min, str(float(N_i_min)/N_t_min*100)+"%", str(float(N_p_min)/N_t_min*100)+"%", a_inic]
 
+    result_dict = dict(zip(cols,values))
+    if os.path.isfile(main_path+"/resultados_generales/resultados.xlsx"):
+        df = pd.read_excel(main_path+"/resultados_generales/resultados.xlsx")
+        if len(df[df["exp_id"] ==exp_id][df["param"]==par])>0:
+            df = df.drop(df[df["exp_id"] ==exp_id][df["param"]==par].index[0])
+            
+        df =df.append(result_dict,ignore_index=True)
+        
+    else: 
+        df= pd.DataFrame([result_dict])
     
-    if len(lines[0][0]) == 1:
-        #Solo se escriben los resultados que no pertenezcan al calculo actual
-        if lines[0] != exp_id or lines[1] != par:
-            results.write('\n')
-            for j in i:
-                results.write('{}\t'.format(j))
-    else:
-        for i in lines:
-            #Solo se escriben los resultados que no pertenezcan al calculo actual
-            if i[0] != exp_id or i[1] != par:
-                results.write('\n')
-                for j in i:
-                    results.write('{}\t'.format(j))
-                    
-    #Se escribe en el archivo el calculo actual
-    results.write('\n{}\t{}\t{:.6e}\t{:.6e}\t{:.6e}\t{:.1%}\t{:.1%}\t{:.3f}'.format(exp_id, par, 
-                  N_t_min, N_i_min, N_p_min, float(N_i_min)/N_t_min, 
-                  float(N_p_min)/N_t_min, a_inic))
-    results.close()
+    df.to_excel(main_path+"/resultados_generales/resultados.xlsx",index=False)
+
+ 
       
     print('Longitud de iniciación de la grieta: {} mm'.format(a_inic))
     print('Numero de ciclos hasta el fallo: {}\n'.format(N_t_min))

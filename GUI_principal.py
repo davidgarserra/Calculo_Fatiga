@@ -11,7 +11,7 @@ from tkinter import ttk
 import numpy as np
 from iniciacion import curvas_iniciacion
 from propagacion import MAT
-from principal import *
+from principal_copy import *
 from estadistica import*
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,NavigationToolbar2Tk
@@ -60,7 +60,7 @@ class programa(tk.Tk):
         self.ubi_dat_exp ="" #ubicacion de los datos experimentales para pestaña gráficas
         self.ubi_dat_est ="" #ubicacion de los datos estimados para pestaña gráficas
 
-        self.ruta_principal = ""
+        self.ruta_principal = os.getcwd()
 
 
         for prop in self.props:
