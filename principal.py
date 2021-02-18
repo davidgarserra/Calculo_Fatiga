@@ -72,7 +72,7 @@ def indice_a(a, x):
 ###############################################################################    
 ###############################################################################
 def rotar_matriz(alfa,matriz):
-        """Devuelve una matriz rotada según los angulos almacenados en           alfa.
+        """Devuelve una matriz rotada según los angulos almacenados en  alfa.
 
         -alfa: array de 3 componentes con los ángulos
         -matriz: matriz de 3x3"""
@@ -98,6 +98,9 @@ def hacer_matriz(vector,i=0):
     INPUT:   
     - vector: array de seis componentes
     - i: fila del vector
+
+    OUTPUT:
+    - m: matriz de componentes del vector
     """
     vector = np.array(vector)
     m = np.array([[vector[i,0], vector[i,3], vector[i,4]],

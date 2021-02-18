@@ -24,21 +24,27 @@ def regresion(par,vida_estimada, vida_experimental):
         datos de los coeficientes.
 
     """
+
     data_exp = pd.read_excel(vida_experimental,index_col=0) #datos de vida experimental
 
-    data_est =pd.read_table(vida_estimada,sep=r"\s+",skiprows =1, names =["exp_id", "param","N_t_min","N_i_min", "N_p_min","%N_i","%N_p","a_inic" ])
+    #podemos cargar los datos en formato .dat o .xlsx
+    try:
+        data_est =pd.read_table(vida_estimada,sep=r"\s+",skiprows =1, names =["exp_id", "param","N_t_min","N_i_min", "N_p_min","N_i_perc","N_p_perc","a_inic" ])
+        
+    except:
+        data_est = pd.read_excel(vida_experimental)
+        
     data_est =data_est[data_est.param==par] #Filtramos solo para ese parámetro 
-
     dict_est = {} #Diccionario con las datos estimados
 
 
     for j,exp in enumerate(data_est.exp_id): #Rellenamos los diccionarios con el valor N_t_min
-        # if exp !='6629_971_70':
         dict_est[exp]=data_est.iloc[j].N_t_min
 
     exps = data_exp.columns.values[1:] #vector de columnas de data_exp menos el primer elemento que es el 6629_971_70
 
-    Df_est_exp = pd.DataFrame() #Dataframe con todos los datos
+    #Cargamos el Dataframe con todos los datos.
+    Df_est_exp = pd.DataFrame() 
     Df_est_exp["exp_id"]=exps
     Df_est_exp["vida_estimada"]=[dict_est[i] for i in exps]
     Df_est_exp["vida_experimental1"]=[data_exp[i].values[0] for i in exps]
@@ -52,21 +58,23 @@ def regresion(par,vida_estimada, vida_experimental):
     #Hacemos la regresion con los logaritmos 
     x =np.concatenate((Df_est_exp.vida_est_log.values,Df_est_exp.vida_est_log.values))
     y =np.concatenate((Df_est_exp.vida_exp_log1.values,Df_est_exp.vida_exp_log2.values))
-
-
+    
+    #Modelo de regresión lineal
     Lm= LinearRegression(fit_intercept=True)
     try:
         Lm.fit(x.reshape(-1,1),y.reshape(-1,1))
     except:
         Lm.fit(x.reshape(-1,1),y.reshape(-1,1))
 
-    a= Lm.coef_[0] 
-    b = Lm.intercept_
+    a= Lm.coef_[0] #Pendiente de la recta de regresión
+    b = Lm.intercept_ #Residual de la recta de regresión
     r =Lm.score(x.reshape(-1,1),y.reshape(-1,1)) # Coeficiente de correlación
-    xs = np.array([0,10]) #Recta de 
-    ys = a*xs+b
+    xs = np.array([0,10]) 
+    ys = a*xs+b #Recta de regresión
+
+    #Deshacemos logaritmos
     xs = 10**xs
-    ys =10**ys
+    ys =10**ys 
 
     x = 10**x
     y =10**y
@@ -79,7 +87,6 @@ def regresion(par,vida_estimada, vida_experimental):
     plt.ylim([np.min(x)*0.5,np.max(x)*2])
     plt.xlabel('Vida estimada')
     plt.ylabel('Vida experimental')
-    # plt.annotate("$a= {:.3f}$\n$r^2= {:.3f}$".format(a[0],r),xy =(np.min(x),np.max(x)),xytext =(np.min(x),np.max(x)*0.95))
     plt.plot([1e1,1e10],[1e1,1e10],'--r',label ="Recta de equivalencia") #recta
     plt.plot(xs,ys,"--g",label ="Recta de regresión")
     plt.plot([1e1,1e10],[0.5e1,0.5e10], "--y")
@@ -88,8 +95,24 @@ def regresion(par,vida_estimada, vida_experimental):
     plt.grid()
    
 def grafica_lon_vida(par,vida_estimada):
-    data_est =pd.read_table(vida_estimada,sep=r"\s+",skiprows =1, names =["exp_id", "param","N_t_min","N_i_min", "N_p_min","%N_i","%N_p","a_inic" ])
-    # data_est=data_est[data_est.exp_id !="6629_971_70"]
+    """Función que representa la vida estimada en una grafica la longitud de inciación 
+    con respecto a los ciclos
+    INPUTS: 
+        -par: criterio FS o SWT
+        -vida estimada: datos con los resultados de cálculos de vida a fatiga
+    
+    OUTPUTS:
+        -fig: Figura
+
+    """
+
+    #Carga de datos
+    try:
+
+        data_est =pd.read_table(vida_estimada,sep=r"\s+",skiprows =1, names =["exp_id", "param","N_t_min","N_i_min", "N_p_min","N_i_perc","N_p_perc","a_inic" ])
+    except:
+        data_est = pd.read_excel(vida_estimada)
+
     data_est = data_est[data_est.param == par]
 
     x = data_est.N_i_min.values
@@ -110,12 +133,26 @@ def grafica_lon_vida(par,vida_estimada):
 
 
 def grafica_per_vida(par,vida_estimada):
-    data_est =pd.read_table(vida_estimada,sep=r"\s+",skiprows =1, names =["exp_id", "param","N_t_min","N_i_min", "N_p_min","%N_i","%N_p","a_inic" ])
-    # data_est=data_est[data_est.exp_id !="6629_971_70"]
+    """Función que representa la vida estimada en una grafica el porcentaje
+    de vida que se lleva la iniciación. 
+    INPUTS: 
+        -par: criterio FS o SWT
+        -vida estimada: datos con los resultados de cálculos de vida a fatiga
+    
+    OUTPUTS:
+        -fig: Figura
+
+
+    """
+    
+    try:
+        data_est =pd.read_table(vida_estimada,sep=r"\s+",skiprows =1, names =["exp_id", "param","N_t_min","N_i_min", "N_p_min","N_i_perc","N_p_perc","a_inic" ])
+    except:
+        data_est = pd.read_excel(vida_estimada)
     data_est = data_est[data_est.param == par]
 
     x = data_est.N_i_min.values
-    y = data_est["%N_i"].values
+    y = data_est["N_i_perc"].values
     y =np.array([float(i[:-1]) for i in y])
 
     fig = plt.figure(figsize=(5,3))
