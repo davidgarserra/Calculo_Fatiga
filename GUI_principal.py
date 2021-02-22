@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on :
+Created on :19/02/2021
 
 @author: David García Serrano
 """
@@ -10,7 +10,6 @@ import  tkinter as tk
 from tkinter import ttk
 import numpy as np
 from iniciacion import curvas_iniciacion
-from propagacion import MAT
 from principal import *
 from estadistica import*
 import matplotlib.pyplot as plt
@@ -56,8 +55,9 @@ class programa(tk.Tk):
 
         self.ubi_dat_exp ="" #ubicacion de los datos experimentales para pestaña gráficas
         self.ubi_dat_est ="" #ubicacion de los datos estimados para pestaña gráficas
-
+        os.chdir(os.path.dirname(__file__))
         self.ruta_principal = os.getcwd() #ruta de ejecución principal
+        
 
         for prop in self.props:
             self.mat_values[prop] = tk.StringVar()
@@ -198,7 +198,7 @@ class programa(tk.Tk):
 
         #Label frame de datos experimentales
         self.dat_exp_lf = ttk.LabelFrame(self.tabs["Datos"],text = "Datos de tensiones y deformaciones")
-        self.dat_exp_lf.place(relx = 0.01,rely = 0.01,relwidth=0.98,relheight=0.2)
+        self.dat_exp_lf.place(relx = 0.01,rely = 0.01,relwidth=0.98,relheight=0.12)
         
         #combobox 
         self.combo_exp = ttk.Combobox(self.dat_exp_lf,width =50)
@@ -211,7 +211,7 @@ class programa(tk.Tk):
 
         # Label Frame Gráficas 
         self.graf_lf = ttk.Labelframe(self.tabs["Datos"],text = "Gráficas")
-        self.graf_lf.place(relx = 0.01, rely =0.22,relheight=0.75,relwidth= 0.48)
+        self.graf_lf.place(relx = 0.01, rely =0.15,relheight=0.85,relwidth= 0.48)
 
         self.graf_frame =tk.Frame(self.graf_lf)
         self.graf_frame.place(x = 5,rely = 0.16, relheight=0.83,relwidth =0.98)
@@ -235,7 +235,7 @@ class programa(tk.Tk):
 
         # Label Frame Treeview
         self.dat_tree_lf = ttk.Labelframe(self.tabs["Datos"],text = "Datos")
-        self.dat_tree_lf.place(relx = 0.5, rely =0.22,relheight=0.75,relwidth= 0.48)
+        self.dat_tree_lf.place(relx = 0.5, rely =0.15,relheight=0.85,relwidth= 0.48)
 
         self.dat_scrollbarx = ttk.Scrollbar(self.dat_tree_lf,orient=tk.HORIZONTAL)
         self.dat_scrollbary = ttk.Scrollbar(self.dat_tree_lf,orient=tk.VERTICAL)
@@ -466,6 +466,7 @@ class programa(tk.Tk):
         for path in lista_path: 
             if not os.path.exists(path):
                 os.makedirs(path)   
+        os.chdir(os.path.dirname(__file__))
 
     def seleccionar_carpeta(self):
         """Selecciona la carpeta principal de ejecución del programa
@@ -474,7 +475,7 @@ class programa(tk.Tk):
         """
         #Preguntamos al usuario la carpeta
         self.ruta_principal = tk.filedialog.askdirectory(title = "Abrir carpeta")
-        os.chdir(self.ruta_principal)
+        # os.chdir(self.ruta_principal)
 
     def mostrar_info(self):
         """Muestra la información del programa en una alerta.
@@ -765,56 +766,66 @@ class programa(tk.Tk):
             tk.messagebox.showerror("ERROR","No se ha especificado el material. Por favor introduce las propiedades en la pestaña Material.")
        
         except FileNotFoundError:
-            tk.messagebox.showerror("ERROR","No se ha encontrado el experimento. Por favor selecciona un experimento de los que se encuentran en la lista.")
+            tk.messagebox.showerror("ERROR","No se han encotrado los datos. Por favor selecciona un experimento de los que se encuentran en la lista.")
         
+        except OSError:
+            tk.messagebox.showerror("ERROR","Comprueba que existe el archivo de iniciación o genera uno")
+        
+        except:
+            tk.messagebox.showerror("ERROR","No se han cargado los datos")
+   
     def ejecutar_calculo_todo(self):
         """Ejecuta todos los datos cargados en el combobox de una vez para
         obtener las gráficas y los resultados de la vida a fatiga
 
         """
+        resp= tk.messagebox.askyesno("ATENCIÓN","¿Estás seguro de que quieres cálcular todos los elementos de la lista?. Esto podría llevar horas.")
 
+        if resp:
         #Borramos el contenido que hubiera anteriormente en los frames
-        if len(self.graf_ini_lf.winfo_children())>=1:
-            for widget in self.graf_ini_lf.winfo_children():
-                widget.destroy()
-        #Reiniciamos las etiquetas de las pestañas
-        self.lbl_lon_ini.config(text ="Longitud de iniciación de la grieta: ")
-        self.lbl_cicl.config(text ="Número de ciclos hasta el fallo: ")
-        self.lbl_ubi.config(text ="Resultados guardados en: ")
-        #Obtenemos los datos del parámetro y anchura.
-        self.par =self.var_param.get()
-        self.W = float(self.W_entry.get())
-
-        #Creamos una figura
-        self.a_N_fig =plt.figure()
-
-        for exp in self.lista_exp:
-            
-            #Obtenemos los experimentos que empiecen por estos patronees
-            pat_max =r'TENSOR_TRAC\S+_{}'.format(exp)
-            pat_min  =r'TENSOR_COM\S+_{}'.format(exp)
-
-            exp_max=    list(filter(lambda i: re.match(pat_max,i),self.files_exp))[0][:-4]
-            exp_min  = list(filter(lambda i: re.match(pat_min,i),self.files_exp))[0][:-4]
-
-            #ejecutamos la función principal para obtener los resultados
-            a_inic,v_ai_mm, N_t_min,N_t,N_p, N_i, N_a = principal(self.par,self.W,self.dict_prop,self.ac_param.get(),exp_max,exp_min,self.dir_exp,ruta_curvas = self.ini_file,main_path=self.ruta_principal)
-
-            pintar_grafica_a_N_todas(N_a,v_ai_mm)
-            
-            #Cargamos los datos en un chart y ponemos la barra de navegación
-            #para interactuar con la gráfica
-            self.a_N_chart= FigureCanvasTkAgg(self.a_N_fig,self.graf_ini_lf)
-            self.a_N_chart.draw()
-            self.a_N_TB  = NavigationToolbar2Tk(self.a_N_chart,self.graf_ini_lf)
-            self.a_N_TB.update()
-            self.a_N_chart.get_tk_widget().pack(fill = tk.BOTH,expand=1,padx =5, pady = 5)
-            self.graf_ini_lf.update()
-
-            if exp != self.lista_exp[-1]:
+            if len(self.graf_ini_lf.winfo_children())>=1:
                 for widget in self.graf_ini_lf.winfo_children():
                     widget.destroy()
-            
+            #Reiniciamos las etiquetas de las pestañas
+            self.lbl_lon_ini.config(text ="Longitud de iniciación de la grieta: ")
+            self.lbl_cicl.config(text ="Número de ciclos hasta el fallo: ")
+            self.lbl_ubi.config(text ="Resultados guardados en: ")
+            #Obtenemos los datos del parámetro y anchura.
+            self.par =self.var_param.get()
+            self.W = float(self.W_entry.get())
+
+            #Creamos una figura
+            self.a_N_fig =plt.figure()
+            try:
+                for exp in self.lista_exp:
+                    
+                    #Obtenemos los experimentos que empiecen por estos patronees
+                    pat_max =r'TENSOR_TRAC\S+_{}'.format(exp)
+                    pat_min  =r'TENSOR_COM\S+_{}'.format(exp)
+
+                    exp_max=    list(filter(lambda i: re.match(pat_max,i),self.files_exp))[0][:-4]
+                    exp_min  = list(filter(lambda i: re.match(pat_min,i),self.files_exp))[0][:-4]
+
+                    #ejecutamos la función principal para obtener los resultados
+                    a_inic,v_ai_mm, N_t_min,N_t,N_p, N_i, N_a = principal(self.par,self.W,self.dict_prop,self.ac_param.get(),exp_max,exp_min,self.dir_exp,ruta_curvas = self.ini_file,main_path=self.ruta_principal)
+
+                    pintar_grafica_a_N_todas(N_a,v_ai_mm)
+                    
+                    #Cargamos los datos en un chart y ponemos la barra de navegación
+                    #para interactuar con la gráfica
+                    self.a_N_chart= FigureCanvasTkAgg(self.a_N_fig,self.graf_ini_lf)
+                    self.a_N_chart.draw()
+                    self.a_N_TB  = NavigationToolbar2Tk(self.a_N_chart,self.graf_ini_lf)
+                    self.a_N_TB.update()
+                    self.a_N_chart.get_tk_widget().pack(fill = tk.BOTH,expand=1,padx =5, pady = 5)
+                    self.graf_ini_lf.update()
+
+                    if exp != self.lista_exp[-1]:
+                        for widget in self.graf_ini_lf.winfo_children():
+                            widget.destroy()
+            except:
+                tk.messagebox.showerror("ERROR","No hay elementos validos en la lista")
+                
 
     
     def cargar_graf_dat_exp(self):
@@ -851,7 +862,7 @@ class programa(tk.Tk):
             for widget in self.per_vida_graf_lf.winfo_children():
                 widget.destroy()
         try:
-            #Gráfica de regresión
+            # Gráfica de regresión
             self.par = self.var_param.get()
             self.fig_reg = plt.figure(figsize =(5,5))
             regresion(self.par,self.ubi_dat_est,self.ubi_dat_exp)
@@ -876,15 +887,17 @@ class programa(tk.Tk):
             self.per_vida_TB = NavigationToolbar2Tk(self.per_vida_chart,self.per_vida_graf_lf)
             self.per_vida_TB.update() 
             self.per_vida_chart.get_tk_widget().pack(fill = tk.BOTH,expand=1,padx =5, pady = 5)
-    
+
         except:
-            tk.messagebox.showerror("ERROR","Archivo/s no válidos. Asegurese de que se han cargado correctamente los archivos.")
+            tk.messagebox.showerror("ERROR", "Asegurese de que se han cargado correctamente los archivos o que el número elementos son iguales en ambos archivos")
 
     def abrir_nuevo(self):
         """Reinicia el programa
         """
+        # os.chdir("../SIN_ACABADO")
         self.destroy()
         self.__init__()
+        
     
     def preguntar_salir(self):
         """Pregunta al usuario si quiere salir del programa.
@@ -892,10 +905,12 @@ class programa(tk.Tk):
         resp = tk.messagebox.askokcancel("Atención","¿Estás seguro de querer salir?")
         if resp:
             self.destroy()
+            os.chdir(os.path.dirname(__file__))
 
 if __name__ =="__main__":
     app = programa() 
     app.mainloop()
+    print(os.path.isfile(__file__))
     
 
 
