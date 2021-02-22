@@ -41,7 +41,7 @@ def regresion(par,vida_estimada, vida_experimental):
     for j,exp in enumerate(data_est.exp_id): #Rellenamos los diccionarios con el valor N_t_min
         dict_est[exp]=data_est.iloc[j].N_t_min
 
-    exps = data_exp.columns.values[1:] #vector de columnas de data_exp menos el primer elemento que es el 6629_971_70
+    exps = data_exp.columns.values[1:] #vector de columnas de data_exp 
 
     #Cargamos el Dataframe con todos los datos.
     Df_est_exp = pd.DataFrame() 
@@ -60,18 +60,18 @@ def regresion(par,vida_estimada, vida_experimental):
     y =np.concatenate((Df_est_exp.vida_exp_log1.values,Df_est_exp.vida_exp_log2.values))
     
     #Modelo de regresión lineal
-    Lm= LinearRegression(fit_intercept=True)
+    Lm= LinearRegression()
     try:
         Lm.fit(x.reshape(-1,1),y.reshape(-1,1))
     except:
         Lm.fit(x.reshape(-1,1),y.reshape(-1,1))
 
     a= Lm.coef_[0] #Pendiente de la recta de regresión
-    b = Lm.intercept_ #Residual de la recta de regresión
-    r =Lm.score(x.reshape(-1,1),y.reshape(-1,1)) # Coeficiente de correlación
-    xs = np.array([0,10]) 
-    ys = a*xs+b #Recta de regresión
+    b = Lm.intercept_[0] #Residual de la recta de regresión
 
+    r =Lm.score(x.reshape(-1,1),y.reshape(-1,1)) # Coeficiente de correlación
+    xs = np.array([0.0,10.0]) 
+    ys = a*xs+b #Recta de regresión
     #Deshacemos logaritmos
     xs = 10**xs
     ys =10**ys 
