@@ -221,6 +221,10 @@ if __name__ == "__main__":
     for par in pars:
         for ac in acs:
             N_i,n_a,v_sigma =curvas_iniciacion(par = par, da=1e-5,ac=ac, W = 10e-3, MAT=MAT)
+
+
+#Comentario
+
     
     
     
